@@ -1,0 +1,132 @@
+#Created By Reggi Aryunadi
+#25 April 2023
+#github.com/Reggi Ar
+#reggi.aryunadi@gmail.com
+
+import sys
+from PyQt5.QtCore import Qt, QTimer, QUrl
+from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel
+from PyQt5.QtGui import QFont
+from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
+from datetime import datetime, timedelta
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        # Inisialisasi UI
+        self.setWindowTitle("Highly Accurate Digital Clock")
+        self.setGeometry(200, 200, 1000, 400)
+        self.setStyleSheet("background-color:#87CEFA;")
+
+        #WIB
+        self.wib = QLabel(self)
+        self.wib.setAlignment(Qt.AlignCenter)
+        self.wib.setFont(QFont("Helvetica",20))
+        self.wib.setGeometry(15,190,300,80)
+        self.wib.setStyleSheet("background-color:black; color:red; font-weight:bold ;")
+
+        #WITA
+        self.wita = QLabel(self)
+        self.wita.setAlignment(Qt.AlignCenter)
+        self.wita.setFont(QFont("Helvetica",20))
+        self.wita.setGeometry(345,190,300,80)
+        self.wita.setStyleSheet("background-color:black; color:red; font-weight:bold ;")
+
+        #WIT
+        self.wit = QLabel(self)
+        self.wit.setAlignment(Qt.AlignCenter)
+        self.wit.setFont(QFont("Helvetica",20))
+        self.wit.setGeometry(675,190,300,80)
+        self.wit.setStyleSheet("background-color:black; color:red; font-weight:bold ;")
+                
+        #Judul 
+        self.judul=QLabel(self)
+        self.judul.setText("INDONESIA STANDARD TIME")
+        self.judul.setFont(QFont("Helvetica",20))
+        self.judul.setGeometry(1,1,998,60)
+        self.judul.setAlignment(Qt.AlignCenter)
+        self.judul.setStyleSheet("background-color:red; color:WHITE; border-radius:10px; border:1px solid; font-weight:bold ;")
+        
+        self.judulwib=QLabel(self)
+        self.judulwib.setText("W I B\nWaktu Indonesia Barat")
+        self.judulwib.setFont(QFont("Helvetica",12))
+        self.judulwib.setGeometry(15,100,300,80)
+        self.judulwib.setAlignment(Qt.AlignCenter)
+        self.judulwib.setStyleSheet("background-color:red; color:WHITE; border-radius:10px; border:1px solid; font-weight:bold ;")
+       
+        self.judulwita=QLabel(self)
+        self.judulwita.setText("W I T A\nWaktu Indonesia Tengah")
+        self.judulwita.setFont(QFont("Helvetica",12))
+        self.judulwita.setGeometry(345,100,300,80)
+        self.judulwita.setAlignment(Qt.AlignCenter)
+        self.judulwita.setStyleSheet("background-color:red; color:WHITE; border-radius:10px; border:1px solid; font-weight:bold ;")
+       
+        self.judulwit=QLabel(self)
+        self.judulwit.setText("W I T\nWaktu Indonesia Timur")
+        self.judulwit.setFont(QFont("Helvetica",12))
+        self.judulwit.setGeometry(675,100,300,80)
+        self.judulwit.setAlignment(Qt.AlignCenter)
+        self.judulwit.setStyleSheet("background-color:red; color:WHITE; border-radius:10px; border:1px solid; font-weight:bold ;")
+        
+        #keterangan
+        self.ket=QLabel(self)
+        self.ket.setText("This Indonesian standard time is traceable to the International System of Units (SI) through\nThe National Standard Laboratory of The National Standardization Agency of Indonesia.")
+        self.ket.setGeometry(5,280,1000,50)
+        self.ket.setFont(QFont("Arial", 10))
+
+        #identity
+        self.id=QLabel(self)
+        self.id.setText("Created By: Reggi Aryunadi -> github.com/ReggiAr")
+        self.id.setGeometry(5,370,1000,30)
+        self.id.setFont(QFont("Arial", 10))
+
+        # Inisialisasi NTP server
+        self.manager = QNetworkAccessManager()
+        self.manager.finished.connect(self.ntp_reply)
+        self.request = QNetworkRequest(QUrl("https://ntp.bsn.go.id"))
+
+        # Inisialisasi timer untuk memperbarui jam setiap 10 milisecond
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_time)
+        self.timer.start(10)
+
+        # Inisialisasi atribut offset
+        self.offsetwib = 0
+        self.offsetwita = 0
+        self.offsetwit = 0
+
+    def ntp_reply(self, reply):
+        # Dapatkan waktu dari NTP server
+        data = reply.readAll().data()
+        time_str_wib = data.decode('utf-8')[26:45]
+        time_str_wita = data.decode('utf-8')[26:45]
+        time_str_wit = data.decode('utf-8')[26:45]
+        timewib = datetime.strptime(time_str_wib, '%Y-%m-%dT%H:%M:%S.%fZ')
+        timewita = datetime.strptime(time_str_wita, '%Y-%m-%dT%H:%M:%S.%fZ')
+        timewit = datetime.strptime(time_str_wit, '%Y-%m-%dT%H:%M:%S.%fZ')
+
+        # Hitung selisih waktu antara NTP server dan waktu lokal
+        self.offsetwib = (timewib - datetime.utcnow()).total_seconds()
+        self.offsetwita = (timewita - datetime.utcnow()).total_seconds()
+        self.offsetwit = (timewit - datetime.utcnow()).total_seconds()
+
+    def update_time(self):
+        # Dapatkan waktu lokal dan tambahkan selisih waktu dari NTP server
+        timewib = datetime.utcnow() + timedelta(seconds=self.offsetwib) + timedelta(hours=7)
+        timewita = datetime.utcnow() + timedelta(seconds=self.offsetwita) + timedelta(hours=8)
+        timewit = datetime.utcnow() + timedelta(seconds=self.offsetwit) + timedelta(hours=9)
+
+        # Format waktu dan tampilkan di label
+        time_str_wib = timewib.strftime('%H:%M:%S.%f')[:-3]
+        time_str_wita = timewita.strftime('%H:%M:%S.%f')[:-3]
+        time_str_wit = timewit.strftime('%H:%M:%S.%f')[:-3]
+        self.wib.setText(time_str_wib)
+        self.wita.setText(time_str_wita)
+        self.wit.setText(time_str_wit)
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec_())
